@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Block Chain</title>
+    <link rel="stylesheet" href="css/main.css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no
+      initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.3/jquery.min.js"></script>
+      <script>
+      $(document).ready(function(){
+        var check_login = "<%= loginUser %>"
+        if(!check_login){
+          alert("로그인 페이지로 들어오시기 바랍니다.")
+          location.href="/";
+          return true;
+        }
+
+         var userAddress, deviceAddress;
+         if (typeof(Storage) !== "undefined") {    // 사용자 address 추출하여 연결하는 부분
+             var userJsonWebstorageValue = localStorage.getItem("myJSONSecretKey");
+             var deviceJsonWebstorageValue = localStorage.getItem("myJSONSecretKeyDevice");
+
+            if(userJsonWebstorageValue == null || userJsonWebstorageValue == ""){
+                alert("사용자주소가 등록되어 있지 않습니다. 통제시스템에 등록후사용하세요")
+                location.href="/";
+                return;
+            }else if (deviceJsonWebstorageValue == null || deviceJsonWebstorageValue == ""){
+              alert("Please register your divice into IoT Control System")
+              return false;
+            } else {
+               var myJSONwithObject = JSON.parse(JSON.parse(userJsonWebstorageValue));
+              // var myJSONwithObjectDevice = JSON.parse(JSON.parse(localStorage.getItem("myJSONSecretKeyDevice")));
+               userAddress =  myJSONwithObject.address;
+            //   deviceAddress =  myJSONwithObjectDevice.address;
+              // alert(myJSONwithObjectDevice.address)
+               if(!myJSONwithObject.address){
+                 alert("사용자주소가 등록되어 있지 않습니다. 통제시스템에 등록후 사용하세요")
+                 location.href="/";
+                 return;
+               }
+           }
+         } else {
+             alert("Sorry, your browser does not support Web Storage...");
+             return;
+         }
+         var xmlhttp = new XMLHttpRequest();
+         xmlhttp.onreadystatechange = function() {
+           if (this.readyState == 4 && this.status == 200) {
+             console.log("this.responseText : ", JSON.parse(this.responseText).success);
+             if( JSON.parse(this.responseText).success == "0"){
+                alert("error message : " + this.responseText)
+             }else{
+                location.href="/booking_list";
+             }
+           }
+         }
+         xmlhttp.open("POST", "/getBookingListByManager", true);  //true Asyc, false syc
+         xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+         xmlhttp.send("userAddress="+userAddress+"&"+"deviceAddress="+deviceAddress);
+      });
+      </script>
+
+
+  </head>
+  <body>
+    <header>
+      <input type="checkbox" id="menu-bar" />
+      <label for="menu-bar"><span></span></label>
+      <nav>
+        <div class="user_info">
+          <div class="img-wrap">
+            <img src="img/profile_face2.jpg" />
+          </div>
+          <div class="profile">
+            <p class="username"><%= loginUser %></p>
+            <p class="user_detail"><%= userAddress %></p>
+            <img id="icon-setting" src="img/icon-setting.svg" class="icon-setting" />
+          </div>
+        </div>
+        <div class="menu-container">
+          <a href="./devices">Devices</a>
+          <a href="./users">Users</a>
+          <a href="./main">History</a>
+          <a href="./logout">logout</a>
+          <!-- <a href="#">Reservation</a> -->
+        </div>
+      </nav>
+      <label for="menu-bar" class="overlay"></label>
+    </header>
+
+    <div class="content">
+      <div class="object-icon-wrap">
+        <img src="img/icon-airconditioner2.svg" class="object-icon" />
+      </div>
+      <p class="object-title">
+        Air Conditioner
+      </p>
+      <div class="object-switch">
+        <input type="checkbox" id="aircon-switch" />
+        <label for="aircon-switch"><span></span></label>
+      </div>
+
+    </div>
+    <script>
+      document.querySelector('#icon-setting').addEventListener('click',()=>{location.href="/main"});
+    </script>
+  </body>
+</html>

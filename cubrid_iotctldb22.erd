@@ -1,0 +1,538 @@
+{
+  "tablesList": [
+    {
+      "logicalName": "userDeviceRelationship",
+      "schemaInfo": {
+        "classname": "userDeviceRelationship",
+        "description": "",
+        "type": "user",
+        "virtual": "normal",
+        "dbname": "ER Design",
+        "isReuseOid": false,
+        "attributes": [
+          {
+            "name": "deviceAddressR",
+            "type": "character(1)",
+            "inherit": "userDeviceRelationship",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "userAddressR",
+            "type": "character(1)",
+            "inherit": "userDeviceRelationship",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "bookingTime",
+            "type": "timestamp",
+            "inherit": "userDeviceRelationship",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "",
+            "isNew": false
+          },
+          {
+            "name": "dateOfenroll",
+            "type": "timestamp",
+            "inherit": "userDeviceRelationship",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "",
+            "isNew": false
+          },
+          {
+            "name": "approvalTime",
+            "type": "timestamp",
+            "inherit": "userDeviceRelationship",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "",
+            "isNew": false
+          },
+          {
+            "name": "autoIncrement",
+            "type": "integer",
+            "inherit": "userDeviceRelationship",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "",
+            "isNew": false
+          }
+        ],
+        "constraints": [
+          {
+            "name": "pk",
+            "type": "PRIMARY KEY",
+            "keyCount": 0,
+            "attributes": [
+              "autoIncrement"
+            ],
+            "newFlag": false
+          },
+          {
+            "name": "fk_userDeviceRelationship_userAddressR",
+            "type": "FOREIGN KEY",
+            "keyCount": 0,
+            "attributes": [
+              "userAddressR"
+            ],
+            "rules": [
+              "REFERENCES user",
+              "ON DELETE RESTRICT",
+              "ON UPDATE RESTRICT"
+            ],
+            "newFlag": true
+          },
+          {
+            "name": "fk_userDeviceRelationship_deviceAddressR",
+            "type": "FOREIGN KEY",
+            "keyCount": 0,
+            "attributes": [
+              "deviceAddressR"
+            ],
+            "rules": [
+              "REFERENCES device",
+              "ON DELETE RESTRICT",
+              "ON UPDATE RESTRICT"
+            ],
+            "newFlag": true
+          }
+        ],
+        "collation": "utf8_bin"
+      },
+      "columns": [
+        {
+          "isPrimaryKey": false,
+          "logicalName": "deviceAddressR",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "deviceAddressR"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "userAddressR",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "userAddressR"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "bookingTime",
+          "logicalShowType": "timestamp",
+          "physicalShowType": "timestamp",
+          "name": "bookingTime"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "dateOfenroll",
+          "logicalShowType": "timestamp",
+          "physicalShowType": "timestamp",
+          "name": "dateOfenroll"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "approvalTime",
+          "logicalShowType": "timestamp",
+          "physicalShowType": "timestamp",
+          "name": "approvalTime"
+        },
+        {
+          "isPrimaryKey": true,
+          "logicalName": "autoIncrement",
+          "logicalShowType": "integer",
+          "physicalShowType": "integer",
+          "name": "autoIncrement"
+        }
+      ],
+      "bounds": {
+        "height": 169,
+        "width": 233,
+        "x": 400,
+        "y": 442
+      },
+      "name": "userDeviceRelationship"
+    },
+    {
+      "logicalName": "사용자 테이블",
+      "schemaInfo": {
+        "classname": "user",
+        "description": "사용자 테이블",
+        "type": "user",
+        "virtual": "normal",
+        "dbname": "ER Design",
+        "isReuseOid": false,
+        "attributes": [
+          {
+            "name": "password",
+            "type": "character(1)",
+            "inherit": "user",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "dateOfenroll",
+            "type": "timestamp",
+            "inherit": "user",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "",
+            "isNew": false
+          },
+          {
+            "name": "address",
+            "type": "character(1)",
+            "inherit": "user",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "autoincrement",
+            "type": "integer",
+            "inherit": "user",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "",
+            "isNew": false
+          },
+          {
+            "name": "pubkey",
+            "type": "character(1)",
+            "inherit": "user",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": true,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "userId",
+            "type": "character(1)",
+            "inherit": "user",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": true,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          }
+        ],
+        "constraints": [
+          {
+            "name": "pk",
+            "type": "PRIMARY KEY",
+            "keyCount": 0,
+            "attributes": [
+              "address"
+            ],
+            "newFlag": false
+          }
+        ],
+        "collation": "utf8_bin"
+      },
+      "columns": [
+        {
+          "isPrimaryKey": false,
+          "logicalName": "password",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "password"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "dateOfenroll",
+          "logicalShowType": "timestamp",
+          "physicalShowType": "timestamp",
+          "name": "dateOfenroll"
+        },
+        {
+          "isPrimaryKey": true,
+          "logicalName": "address",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "address"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "autoincrement",
+          "logicalShowType": "integer",
+          "physicalShowType": "integer",
+          "name": "autoincrement"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "pubkey",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "pubkey"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "userId",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "userId"
+        }
+      ],
+      "bounds": {
+        "height": 169,
+        "width": 225,
+        "x": 169,
+        "y": 92
+      },
+      "name": "user"
+    },
+    {
+      "logicalName": "장치 테이블",
+      "schemaInfo": {
+        "classname": "device",
+        "description": "장치 테이블",
+        "type": "user",
+        "virtual": "normal",
+        "dbname": "ER Design",
+        "isReuseOid": false,
+        "attributes": [
+          {
+            "name": "deviceAddress",
+            "type": "character(1)",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "dateOfenroll",
+            "type": "character(1)",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "autoincrement",
+            "type": "integer",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "",
+            "isNew": false
+          },
+          {
+            "name": "teleport",
+            "type": "character(1)",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "통신가능여부",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "devicePurpose",
+            "type": "character(1)",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "inputorAddress",
+            "type": "character(1)",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "deviceName",
+            "type": "character(1)",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": false,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          },
+          {
+            "name": "devicePubkey",
+            "type": "character(1)",
+            "inherit": "device",
+            "indexed": false,
+            "notNull": true,
+            "shared": false,
+            "unique": false,
+            "isClassAttribute": false,
+            "description": "",
+            "collation": "utf8_bin",
+            "isNew": false
+          }
+        ],
+        "constraints": [
+          {
+            "name": "pk",
+            "type": "PRIMARY KEY",
+            "keyCount": 0,
+            "attributes": [
+              "deviceAddress"
+            ],
+            "newFlag": false
+          }
+        ],
+        "collation": "utf8_bin"
+      },
+      "columns": [
+        {
+          "isPrimaryKey": true,
+          "logicalName": "deviceAddress",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "deviceAddress"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "dateOfenroll",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "dateOfenroll"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "autoincrement",
+          "logicalShowType": "integer",
+          "physicalShowType": "integer",
+          "name": "autoincrement"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "통신가능여부",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "teleport"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "devicePurpose",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "devicePurpose"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "inputorAddress",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "inputorAddress"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "deviceName",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "deviceName"
+        },
+        {
+          "isPrimaryKey": false,
+          "logicalName": "devicePubkey",
+          "logicalShowType": "char(1)",
+          "physicalShowType": "char(1)",
+          "name": "devicePubkey"
+        }
+      ],
+      "bounds": {
+        "height": 213,
+        "width": 224,
+        "x": 616,
+        "y": 80
+      },
+      "name": "device"
+    }
+  ],
+  "physicalLogicalRelation": {
+    "dataTypeMap": {}
+  },
+  "name": "demodb"
+}
