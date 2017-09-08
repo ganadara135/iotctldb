@@ -4,8 +4,11 @@
 // Result2Array: DB 결과 집합(result set)을 JavaScript 배열(Array)로 변환하는 함수들
 // createDefaultCUBRIDDemodbConnection(): 로컬 demodb에 대한 연결 객체를 반환하는 함수
 // createCUBRIDConnection(): CUBRID에 대한 연결 객체를 반환하는 함수
+// 이름이 query로 시작하는 API는 데이터 레코드를 반환하고, 이름이 execute로 시작하는 API는 레코드를 반환하지 않는다.
+// 따라서 SELECT 쿼리는 query() 함수를 사용하고, INSERT/UPDATE/DELETE 쿼리는 execute() 함수를 사용하면 된다.
 // http://d2.naver.com/helloworld/251396  참고
 var CUBRID = require('node-cubrid');
+const conCubrid = CUBRID.createCUBRIDConnection('1.255.54.209', 33000, 'dba', '', 'demodb');
 
 const connection = {
 //      port: 7206,     //rpc port
@@ -30,18 +33,18 @@ const multichain = bluebird.promisifyAll(require("multichain-node")(connection),
 module.exports = function(app, fs, jsonParser, urlencodedParser, client_token_arg ,address_param )
 {
 
-var conn = CUBRID.createCUBRIDConnection('1.255.54.209', 33000, 'dba', '', 'demodb');
 
-conn.connect(function (err) {
-    if (err) {
-        throw err.message;
-    } else {
-        console.log('db connection is established');
-        conn.close(function () {
-            console.log('db connection is closed');
-        });
-    }
-});
+
+// conn.connect(function (err) {
+//     if (err) {
+//         throw err.message;
+//     } else {
+//         console.log('db connection is established');
+//         conn.close(function () {
+//             console.log('db connection is closed');
+//         });
+//     }
+// });
 
 
 app.post('/approveBooking',function(req,res){
@@ -620,7 +623,8 @@ app.post('/createDeviceAddress',function(req,res){
 
 app.post('/createUserAddress',function(req,res){
       var sess = req.session;
-      var username = req.body.username;
+      //var username = req.body.username;
+      var userId = req.body.username;
 
       var result = {};
 
@@ -638,93 +642,97 @@ app.post('/createUserAddress',function(req,res){
       }
 
       // LOAD DATA & CHECK DUPLICATION
-      fs.readFile( __dirname + "/../data/user.json", 'utf8',  function(err, data){
-          var users = JSON.parse(data);
-          console.log("users[username]  : ", users[username])
-          if(users[username]){
-              // DUPLICATION FOUND
-              result["success"] = 0;
-              result["error"] = "duplicate";
-              res.json(result);
-              return;
-          }
+  //    var code = 15214,
+//      const conCubrid = CUBRID.createCUBRIDConnection('1.255.54.209', 33000, 'dba', '', 'demodb');
 
-//            confirmCallbackForthis.call(this);
-            console.log("call createkeypairs()");
-//        return multichain.validateAddressPromise({address: this.address1})
-          multichain.createKeyPairsPromise()
-          .then(addrPubPri => {
-              assert(addrPubPri);
-              console.log("addrPubPri : " , addrPubPri);
-  //                this = {};
-              console.log("this  ===> ", this);
+      const promise = conCubrid.connect()
+      .then(() => {
+        console.log('connection is established');
 
-              // this.address1 = addrPubPri[0]["address"];
-              // this.pubkey = addrPubPri[0]["pubkey"];
-              // this.privkey = addrPubPri[0]["privkey"];
+//        return client.close();
+          // var sql = 'SELECT * FROM user WHERE userId = ?';
+          // return conCubrid.queryWithParams(sql, [userId], [],cb);
+          var sql = 'SELECT * FROM [user] WHERE userid = '+"'"+userId+"'";
+          console.log("sql ==> ", sql)
+          return conCubrid.query(sql);
+      })
+      .then(response => {
+        // if(rowsCount > 0){
+        //     // DUPLICATION FOUND
+        //     result["success"] = 0;
+        //     result["error"] = "duplicate";
+        //     res.json(result);
+        //     return false;   // checked by assert(addrPubPri);
+        // }
+        assert(response.result.RowsCount === 0);
+        console.log("beginTransaction()  ");
+        return conCubrid.beginTransaction();
+      })
+      .then(() => {
+        console.log("call createkeypairs()");
+        return multichain.createKeyPairsPromise();
+      })
+      .then(addrPubPri => {
+        assert(addrPubPri);
+        console.log("addrPubPri : " , addrPubPri);
 
-              result["address"] = addrPubPri[0]["address"];
-              result["pubkey"] = addrPubPri[0]["pubkey"];
-              result["privkey"] = addrPubPri[0]["privkey"];
+        result["address"] = addrPubPri[0]["address"];
+        result["pubkey"] = addrPubPri[0]["pubkey"];
+        result["privkey"] = addrPubPri[0]["privkey"];
 
-              // ADD TO DATA
-              users[username] =  req.body;
-              users[username].address =  result["address"];
-              users[username].pubkey =  result["pubkey"];
-//              users[username].secureGrade = 0;    // 보안등급 0- 일반인, 1 - 관리자
-              users[username].enrolledDate = Date.now();
-              result["dateOfenroll"] = users[username].dateOfenroll;
-              console.log("*********  users[username]  : " , users[username]);
+          // ADD TO DATA
+        var sql = 'INSERT INTO address, pubkey, dateOfenroll, userid, password FROM [user] VALUE('+result["address"]+','
+        + result["pubkey"]+','+ Date.now()+','+req.body.password+','+req.body.password +')';
 
-              sess.loginUser = username;
-              sess.userAddress = users[username].address;
-              console.log("sess.loginUser :  ", sess.loginUser)
-              console.log("sess.userAddress :  ", sess.userAddress)
+        var sql = 'INSERT INTO [user] (password, dateOfenroll, address, pubkey, userid) VALUES(?, ?, ?, ?, ?)';
+        var params = [req.body.password, Date.now(), result["address"], result["pubkey"], req.body.username ];
+//        var dataTypes = ['int', 'short', 'varchar', 'datetime'];
+        console.log("sql ==> ", sql)
 
-              // SAVE DATA
-              fs.writeFile(__dirname + "/../data/user.json", JSON.stringify(users, null, '\t'), "utf8", function(err, data){
-                if(err){
-                    throw err;
-                }
-              })   // fs.writeFile
+        sess.loginUser = userId;
+        sess.userAddress = result["address"];
 
-
-              return multichain.importAddressPromise({
-                address: result["address"],
-                rescan: false
-              })
-          })
-          .then(() => {
-                console.log("TEST: GRANT")
-                return multichain.grantPromise({
-                    addresses: result["address"],
+        //return conCubrid.execute(sql);
+        return conCubrid.executeWithTypedParams(sql, params, '');
+      })
+      .then(() => {
+        return multichain.importAddressPromise({
+          address: result["address"],
+          rescan: false
+        })
+      })
+      .then(() => {
+            console.log("TEST: GRANT")
+            return multichain.grantPromise({
+                addresses: result["address"],
 //                    permissions: "send,receive,create"
-                    permissions: "connect,send,receive,issue,mine,admin,activate,create"
-                })
-          })
-          .then(txid => {
-                console.log("TEST:   confirmCallbackEnroll() ")
-                assert(txid);
-                confirmCallbackEnroll(result,res);
-          })
-/*
-          .then(txid => {
-                listenForConfirmations(txid, (err, confirmed) => {
-                    if(err){
-                        throw err;
-                    }
-                    if(confirmed == true){
-                        //confirmCallbackEnroll.call(result);
-                        confirmCallbackEnroll(result,res);
-                    }
-                })
-          })
-*/          .catch(err => {
-                console.log(err)
-                throw err;
-          })
-      })  // fs.readFile
-  });
+                permissions: "connect,send,receive,issue,mine,admin,activate,create"
+            })
+      })
+      .then(txid => {
+            console.log("TEST:   confirmCallbackEnroll() ")
+            assert(txid);
+            confirmCallbackEnroll(result,res);
+      })
+      .then(() =>{
+        return conCubrid.commit();
+      })
+      .then(() => {
+        return conCubrid.endTransaction();
+      })
+      .then(() => {
+        console.log("DB close()");
+        // sned the result to a browser.
+        res.json(result);
+        return conCubrid.close();
+      })
+      .catch(err => {
+        // Handle the error.
+        console.log("err  ==> ", err);
+        conCubrid.rollback();
+        throw err;
+      });
+});
 
 
   let listenForConfirmations = (txid, cb) => {
@@ -812,8 +820,8 @@ app.post('/createUserAddress',function(req,res){
           console.log("tx_hex  : ", tx_hex);
           assert(tx_hex)
 
-          console.log("Finished Successfully");
-          res.json(result_return);
+          console.log("Finished Successfully of Inputing Blockchain");
+//          res.json(result_return);
       })
       .catch(err => {
           console.log(err)
@@ -998,19 +1006,6 @@ app.post('/createUserAddress',function(req,res){
 
       if (!req.body)
         console.log("bodyParser is not working!!!!");
-
-        // // LOAD DATA & CHECK DUPLICATION
-        // fs.readFile( __dirname + "/../data/device.json", 'utf8',  function(err, data){
-        //     var devices = JSON.parse(data);
-        //
-        //     if(devices[deviceName]){
-        //         // DUPLICATION FOUND
-        //         result["success"] = 0;
-        //         result["error"] = "duplicate";
-        //         res.json(result);
-        //         return;
-        //     }
-
 
       console.log("req.body  : ", req.body);
 
