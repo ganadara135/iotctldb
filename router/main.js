@@ -837,15 +837,15 @@ app.post('/createUserAddress',function(req,res){
 //  app.post('/checkID/:username', function(req, res){
   app.post('/checkID', function(req, res){
 
-     var result = {  };
-     var IDname = req.body.username;
+     var result = { };
+     var userId = req.body.username;
 
 //     console.log("chk req.params   : ", req.params);
      console.log("chk req.body   : ", req.body);
      console.log("chk IDname   : ", IDname);
 
      // CHECK REQ VALIDITY
-     if(!IDname){
+     if(!userId){
   //     if(!req.body["password"] || !req.body["name"]){
          result["success"] = 0;
          result["error"] = "invalid request";
@@ -853,18 +853,32 @@ app.post('/createUserAddress',function(req,res){
          return;
      }
 
-     // LOAD DATA & CHECK DUPLICATION
-     fs.readFile( __dirname + "/../data/user.json", 'utf8',  function(err, data){
-         var users = JSON.parse(data);
-         if(users[IDname]){
-             // DUPLICATION FOUND
-             result["success"] = 0;
-             result["error"] = "duplicate";
-         }else {
-             result["success"] = 1;
-         }
-         res.json(result);
+     const promise = conCubrid.connect()
+     .then(() => {
+       console.log('db connection is established');
+       var sql = 'SELECT * FROM [user] WHERE userid = '+"'"+userId+"'";
+       console.log("sql ==> ", sql)
+       return conCubrid.query(sql);
      })
+     .then(response => {
+       //assert(response.result.RowsCount === 0);
+
+       if( response.result.RowsCount === 0){
+         result["success"] = 1;
+       }else if(response.result.RowsCount > 0){
+         // DUPLICATION FOUND
+         result["success"] = 0;
+         result["error"] = "duplicate";
+       }
+       res.json(result);
+       console.log("DB close()");
+       return conCubrid.close();
+     })
+     .catch(err => {
+       // Handle the error.
+       console.log("err  ==> ", err);
+       throw err;
+     });
   });
 
   app.get('/',urlencodedParser,function(req,res){
@@ -1005,6 +1019,8 @@ app.post('/createUserAddress',function(req,res){
   //  app.post('/login/:IDname',jsonParser, function(req, res){
   app.post('/login',urlencodedParser, function(req, res){
       var sess = req.session;
+      var userId = req.body.userId;
+      var password = req.body.password
       var result = {};
 
       if (!req.body)
@@ -1012,46 +1028,50 @@ app.post('/createUserAddress',function(req,res){
 
       console.log("req.body  : ", req.body);
 
-        fs.readFile(__dirname + "/../data/user.json", "utf8", function(err, data){
-          if(err){
-              console.log("err[code]    :    ", err["code"])
-              if(err["code"] == "ENOENT"){
-                result["success"] = 0;
-                result["error"] = "Server Internal Error";
-                res.json(result);
-                return;
-              }else {
-                throw err;   // relationship 이 하나도 없거나, 에러 발생시
-              }
-          }
-          var users = JSON.parse(data);
-          var IDname = req.body.IDname;
-          var password = req.body.password;
-          var result = {};
-          if(!users[IDname]){
-              // USERNAME NOT FOUND
-              result["success"] = 0;
-              result["error"] = "ID incorrect";
-              res.json(result);
-              return;
-          }
+      const promise = conCubrid.connect()
+      .then(() => {
+        console.log('db connection is established');
+        var sql = 'SELECT * FROM [user] WHERE userid = '+"'"+userId+"'";
+        console.log("sql ==> ", sql)
+        return conCubrid.queryAllAsObjects(sql)
+        //return conCubrid.query(sql);
+      })
+      .then(response => {
+        //assert(response.result.RowsCount === 0);
+    //    console.log(response);
+        const rowsCount = response.length;
+        if(rowsCount > 0){
+            const row = response[0];
 
-          if(users[IDname]["password"] == password){
+            // console.log(row.password);
+            // console.log(row.dateofenroll);
+            // console.log(row.address);
+            // console.log(row.pubkey);
+            if(row.password === password){
               result["success"] = 1;
-              result["IDname"]= "Successfully login";
+              sess.loginUser = userId;
+              sess.userAddress = row.address;
+            }else{
+              // password incorrect
+              result["success"] = 0;
+              result["error"] = "password incorrect";
+            }
+        }else {
+          // userId incorrect
+          result["success"] = 0;
+          result["error"] = "userId incorrect";
+        }
+        res.json(result);
+        console.log("DB close()");
+        return conCubrid.close();
+      })
+      .catch(err => {
+        // Handle the error.
+        console.log("err  ==> ", err);
+        throw err;
+      })
 
-              // var tenMinute = 60000 * 10;
-              // // expires 는 쿠키생존기간 설정변수
-              // req.session.cookie.expires = new Date(Date.now() + tenMinute);
-              // //maxAge 는 expires 설정후 지난 시간을 나타냄
-              // req.session.cookie.maxAge = tenMinute;
 
-              sess.loginUser = users[IDname]["username"];
-              sess.userAddress = users[IDname]["address"];
-              console.log("sess.loginUser :  ", sess.loginUser)
-              console.log("sess.userAddress :  ", sess.userAddress)
-
-              res.json(result);
 /*                res.redirect('choice', {
                   title: "MY HOMEPAGE",
                   length: 5,
@@ -1059,12 +1079,7 @@ app.post('/createUserAddress',function(req,res){
                   amount: 0
               })
 */
-          }else{
-              result["success"] = 0;
-              result["error"] = "PW incorrect";
-              res.json(result);
-          }
-      })
+
   });
 
   app.get('/logout', function(req, res){
