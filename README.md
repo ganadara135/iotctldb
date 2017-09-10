@@ -23,3 +23,8 @@
 4. 2017.9.3::19:00
 Be care to use For( ) sentence in javascript.
 Don't forget "const" in For() like this "For( const x in items)".
+
+5. 2017.9.10:21:00
+
+  convert JSON file into RDBMS as Cubrid made by Naver.
+  be cautious of dataType between DB and Nodejs.   
