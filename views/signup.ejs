@@ -53,17 +53,18 @@
         xmlhttp.onreadystatechange = function() {
           if (this.readyState == 4 && this.status == 200) {
             console.log("this.responseText : ", this.responseText);
-            // $("responsePanel").append(" "+this.responseText+" ");
-            //alert(this.responseText);
-            if(JSON.parse(this.responseText).address){
+            if( JSON.parse(this.responseText).success == 1){
               overlay.classList.remove('overlay-on');
               //alert("비밀키 생성이 성공하였습니다.");
               var myJSON = JSON.stringify(this.responseText);
               localStorage.setItem("myJSONSecretKey", myJSON);
               document.getElementById("register_button").disabled = false;
               document.getElementById("register_button").classList.remove('invisible');
-            }else {
-                alert("this.responseText" + "비밀키 생성에 실패하였습니다");
+              //location.href="/main";
+            } else{
+              alert(JSON.parse(this.responseText).error);
+              overlay.classList.remove('overlay-on');
+              document.querySelector("#username").focus();
             }
           }
         }

@@ -649,7 +649,6 @@ app.post('/createUserAddress',function(req,res){
       .then(() => {
         console.log('connection is established');
 
-//        return client.close();
           // var sql = 'SELECT * FROM user WHERE userId = ?';
           // return conCubrid.queryWithParams(sql, [userId], [],cb);
           var sql = 'SELECT * FROM [user] WHERE userid = '+"'"+userId+"'";
@@ -657,18 +656,23 @@ app.post('/createUserAddress',function(req,res){
           return conCubrid.query(sql);
       })
       .then(response => {
-        // if(rowsCount > 0){
-        //     // DUPLICATION FOUND
-        //     result["success"] = 0;
-        //     result["error"] = "duplicate";
-        //     res.json(result);
-        //     return false;   // checked by assert(addrPubPri);
-        // }
-        assert(response.result.RowsCount === 0);
-        console.log("beginTransaction()  ");
-        return conCubrid.beginTransaction();
+        //assert(response.result.RowsCount === 0);
+        if( response.result.RowsCount === 0){
+          console.log("beginTransaction()  ");
+          return conCubrid.beginTransaction();
+        }else if(response.result.RowsCount > 0){
+          // DUPLICATION FOUND
+          result["success"] = 0;
+          result["error"] = "duplicate";
+          res.json(result);
+          conCubrid.close();
+          //return false;   // checked by assert(addrPubPri);
+          assert(false);  // stop promise
+        }
       })
       .then(() => {
+//      .then(chk_duplicated_id => {
+//        assert(chk_duplicated_id !== false)
         console.log("call createkeypairs()");
         return multichain.createKeyPairsPromise();
       })
@@ -676,24 +680,21 @@ app.post('/createUserAddress',function(req,res){
         assert(addrPubPri);
         console.log("addrPubPri : " , addrPubPri);
 
+        sess.loginUser = userId;
+        sess.userAddress = result["address"];
+
         result["address"] = addrPubPri[0]["address"];
         result["pubkey"] = addrPubPri[0]["pubkey"];
         result["privkey"] = addrPubPri[0]["privkey"];
 
-          // ADD TO DATA
-        var sql = 'INSERT INTO address, pubkey, dateOfenroll, userid, password FROM [user] VALUE('+result["address"]+','
-        + result["pubkey"]+','+ Date.now()+','+req.body.password+','+req.body.password +')';
-
         var sql = 'INSERT INTO [user] (password, dateOfenroll, address, pubkey, userid) VALUES(?, ?, ?, ?, ?)';
         var params = [req.body.password, Date.now(), result["address"], result["pubkey"], req.body.username ];
-//        var dataTypes = ['int', 'short', 'varchar', 'datetime'];
+        var dataTypes = ['varchar', 'bigint', 'varchar', 'varchar','varchar'];
         console.log("sql ==> ", sql)
-
-        sess.loginUser = userId;
-        sess.userAddress = result["address"];
+        console.log("params ==> ", params)
 
         //return conCubrid.execute(sql);
-        return conCubrid.executeWithTypedParams(sql, params, '');
+        return conCubrid.executeWithTypedParams(sql, params, dataTypes);
       })
       .then(() => {
         return multichain.importAddressPromise({
@@ -715,14 +716,16 @@ app.post('/createUserAddress',function(req,res){
             confirmCallbackEnroll(result,res);
       })
       .then(() =>{
+        console.log("TEST:   cubrid.commit() ")
         return conCubrid.commit();
       })
       .then(() => {
+        console.log("TEST:   cubrid.endTransaction() ")
         return conCubrid.endTransaction();
       })
       .then(() => {
         console.log("DB close()");
-        // sned the result to a browser.
+        // send the result to a browser.
         res.json(result);
         return conCubrid.close();
       })
