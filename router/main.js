@@ -34,19 +34,6 @@ module.exports = function(app, fs, jsonParser, urlencodedParser, client_token_ar
 {
 
 
-
-// conn.connect(function (err) {
-//     if (err) {
-//         throw err.message;
-//     } else {
-//         console.log('db connection is established');
-//         conn.close(function () {
-//             console.log('db connection is closed');
-//         });
-//     }
-// });
-
-
 app.post('/approveBooking',function(req,res){
   var sess = req.session;
   var userAddress = req.body.userAddress;
@@ -469,6 +456,8 @@ app.post('/createDeviceAddress',function(req,res){
       var deviceName = req.body.deviceName;
       var devicePurpose = req.body.devicePurpose;
       var deviceInputerAddress = req.body.deviceInputerAddress;
+      var teleport = req.body.teleport;
+      const paramsOfsql = [];
 
       var result = {};
 
@@ -481,150 +470,154 @@ app.post('/createDeviceAddress',function(req,res){
           return;
       }
 
-      // LOAD DATA & CHECK DUPLICATION
-      fs.readFile( __dirname + "/../data/device.json", 'utf8',  function(err, data){
-          var devices = JSON.parse(data);
+      const promise = conCubrid.connect()
+      .then(() => {
+        console.log('connection is established');
 
-          if(devices[deviceName]){
-              // DUPLICATION FOUND
-              result["success"] = 0;
-              result["error"] = "duplicate";
-              res.json(result);
-              return;
-          }
+        // sess.loginUser = userId;
+        // sess.userAddress = row.address;
 
-          // LOAD DATA & CHECK DUPLICATION
-          fs.readFile( __dirname + "/../data/relationship.json", 'utf8',  function(err, data){
-              var relationshipOf = JSON.parse(data);
+        // LOAD DATA & CHECK DUPLICATION
+        // 한 사람이 같은 device 이름 입력하지 못하게 함
+        var sql = 'SELECT * FROM device WHERE inputoraddress = '+"'"+sess.userAddress+"'" + ' AND devicename = '+"'"+deviceName+"'";
+        console.log("sql ==> ", sql)
+        return conCubrid.query(sql);
+      })
+      .then(response => {
+        //assert(response.result.RowsCount === 0);
+        if( response.result.RowsCount === 0){
+          console.log("beginTransaction()  ");
+          return conCubrid.beginTransaction();
+        }else if(response.result.RowsCount > 0){
+          // DUPLICATION FOUND
+          result["success"] = 0;
+          result["error"] = "duplicate";
+          res.json(result);
+          conCubrid.close();
+          //return false;   // checked by assert(addrPubPri);
+          assert(false);  // stop promise
+        }
+      })
+      .then(() => {
+  //      .then(chk_duplicated_id => {
+  //        assert(chk_duplicated_id !== false)
+          console.log("call createkeypairs()");
+          return multichain.createKeyPairsPromise();
+      })
+      .then(addrPubPri => {
+        assert(addrPubPri);
+        console.log("addrPubPri : " , addrPubPri);
 
-              if(err){
-                  throw err;
-              }
+        result["address"] = addrPubPri[0]["address"];
+        result["pubkey"] = addrPubPri[0]["pubkey"];
+        result["privkey"] = addrPubPri[0]["privkey"];
 
-              console.log("call createkeypairs()");
-    //        return multichain.validateAddressPromise({address: this.address1})
-              multichain.createKeyPairsPromise()
-              .then(addrPubPri => {
-                assert(addrPubPri);
-                console.log("addrPubPri : " , addrPubPri);
-                console.log("this  ===> ", this);
+        var sql = 'INSERT INTO device (deviceaddress, dateofenroll, teleport, devicepurpose, inputoraddress, devicename, devicepubkey) VALUES(?, ?, ?, ?, ?, ?, ?)';
+        var params = [result["address"], Date.now(), teleport, devicePurpose, deviceInputerAddress, deviceName, result["pubkey"]];
+        var dataTypes = ['varchar', 'bigint', 'char', 'varchar','varchar','varchar','varchar'];
+        console.log("sql of device ==> ", sql)
+        console.log("params ==> ", params)
+        paramsOfsql[0] = params;
 
-                result["address"] = addrPubPri[0]["address"];
-                result["pubkey"] = addrPubPri[0]["pubkey"];
-                result["privkey"] = addrPubPri[0]["privkey"];
+        return conCubrid.executeWithTypedParams(sql, params, dataTypes);
+      })
+      .then(() => {
 
-                // store device's info into IOT server  without privkey
-                devices[deviceName] =  req.body;
-//                users[deviceName].tele = "0";    // 보안등급    0 - 자체통신불가, 1 - 자체통신가능
-                devices[deviceName].address = result["address"];
-                devices[deviceName].pubkey = result["pubkey"];
-                devices[deviceName].enrolledDate = Date.now();
+        var sql = 'INSERT INTO userdevicerelationship (deviceaddress, useraddress, dateofenroll) VALUES(?, ?, ?)';
+        var params = [result["address"], deviceInputerAddress, Date.now()];
+        var dataTypes = ['varchar', 'varchar', 'bigint'];
+        console.log("sql of relationshiop ==> ", sql)
+        console.log("params ==> ", params)
+        paramsOfsql[1] = params;
 
-                // relationshiop.json 은  장치관리자주소 + 장치주소 + 등록날짜 로 고유번호부여
-                relationshipOf[deviceInputerAddress+result["address"]+devices[deviceName].enrolledDate] =
-                 {"deviceAddress": result["address"],
-                 "userAddress": deviceInputerAddress,
-                 "enrolledDate": devices[deviceName].enrolledDate};
+        return conCubrid.executeWithTypedParams(sql, params, dataTypes);
+      })
+      .then(() => {
+        console.log("TEST: importAddressPromise")
+        return multichain.importAddressPromise({
+          address: result["address"],
+          rescan: false
+        })
+      })
+      .then(() => {
+        console.log("TEST: GRANT")
+        return multichain.grantPromise({
+            addresses: result["address"],
+//                    permissions: "send,receive,create"
+            permissions: "connect,send,receive,issue,mine,admin,activate,create"
+        })
+      })
+      .then(txid => {
+        assert(txid)
 
-                // SAVE DATA
-                fs.writeFile(__dirname + "/../data/device.json", JSON.stringify(devices, null, '\t'), "utf8", function(err, data){
-                  if(err){
-                      throw err;
-                  }           // relationshiop.json 은  장치관리자주소 + 장지주소 로 고유번호부여
-                  fs.writeFile(__dirname + "/../data/relationship.json", JSON.stringify(relationshipOf, null, '\t'), "utf8", function(err, data){
-                    if(err){
-                        throw err;
-                    }
-                  }) // fs.writeFile relationship.json
-               })   // fs.writeFile device.json
+        console.log("TEST: SUBSCRIBE STREAM")
+        return multichain.subscribePromise({
+            stream: "BookingStream"
+        })
+      })
+      .then(() => {
 
+        console.log("TEST: CREATE RAW SEND FROM");
 
-              return multichain.importAddressPromise({
-                address: result["address"],
-                rescan: false
-              })
-          })
-          .then(() => {
-              console.log("TEST: GRANT")
-              return multichain.grantPromise({
-                  addresses: result["address"],
-    //                    permissions: "send,receive,create"
-                  permissions: "connect,send,receive,issue,mine,admin,activate,create"
-              })
-          })
-          .then(txid => {
-            assert(txid)
+        // var textvall = new Buffer(JSON.stringify(devices[deviceName])).toString("hex")
+        // const buf222 = new Buffer(textvall, 'hex');
+        // console.log("buf222.toString()   :  ", buf222.toString());
 
-            console.log("TEST: SUBSCRIBE STREAM")
-            return multichain.subscribePromise({
-                stream: "BookingStream"
-            })
-          })
-          .then(() => {
-          //      console.log("subscribed  : ", subscribed);
-              console.log("TEST: CREATE RAW SEND FROM");
-    //                result_return["dateOfenroll"] = new Buffer(Date.now().toString()).toString("hex");
+        return multichain.createRawSendFromPromise({
+          from: result["address"],
+          to: {},
+          msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(paramsOfsql[0])).toString("hex")},
+                {"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(paramsOfsql[0]).toString() ).toString("hex")}]
+        })
+      })         // signrawtransaction [paste-hex-blob] '[]' '["privkey"]'
+      .then(hexstringblob => {
+        console.log("hexstringblob  : ", hexstringblob);
+        assert(hexstringblob)
 
-              var textvall = new Buffer(JSON.stringify(devices[deviceName])).toString("hex")
-              const buf222 = new Buffer(textvall, 'hex');
-              console.log("buf222.toString()   :  ", buf222.toString());
+        return multichain.signRawTransactionPromise({
+            hexstring: hexstringblob,
+      //        parents: [],
+            privatekeys: [result["privkey"]]
+        })
+      })      //  sendrawtransaction [paste-bigger-hex-blob]
+      .then(hexvalue => {
+        console.log("hexvalue.hex  : ", hexvalue.hex);
 
+        assert(hexvalue)
 
-              return multichain.createRawSendFromPromise({
-                from: result["address"],
-                to: {},
-                msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(
-                        devices[deviceName])).toString("hex")},
-                      {"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(
-                        relationshipOf[deviceInputerAddress+result["address"]+devices[deviceName].enrolledDate]).toString() ).toString("hex")}]
+        return multichain.sendRawTransactionPromise({
+            hexstring: hexvalue.hex
+        })
+      })
+      .then(tx_hex => {
+        console.log("tx_hex  : ", tx_hex);
+        assert(tx_hex)
 
-                // msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(
-                //         devices[deviceName])).toString("hex")},
-                //       {"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(
-                //         relationshipOf[deviceInputerAddress+result["address"]]  )).toString("hex")}],
-          //              action: "send"
-              })
-          })         // signrawtransaction [paste-hex-blob] '[]' '["privkey"]'
-          .then(hexstringblob => {
-            console.log("hexstringblob  : ", hexstringblob);
-
-            assert(hexstringblob)
-
-            return multichain.signRawTransactionPromise({
-                hexstring: hexstringblob,
-          //        parents: [],
-                privatekeys: [result["privkey"]]
-            })
-          })      //  sendrawtransaction [paste-bigger-hex-blob]
-          .then(hexvalue => {
-            console.log("hexvalue.hex  : ", hexvalue.hex);
-
-            assert(hexvalue)
-
-            return multichain.sendRawTransactionPromise({
-                hexstring: hexvalue.hex
-            })
-          })
-          .then(tx_hex => {
-              console.log("tx_hex  : ", tx_hex);
-
-              assert(tx_hex)
-
-              console.log("Finished Successfully");
-              res.json(result);
-          })
-          .catch(err => {
-              console.log(err)
-              throw err;
-          })
-        })  // fs.readFile  relationship.json
-      })  // fs.readFile
+        console.log("TEST:   cubrid.commit() ")
+        return conCubrid.commit();
+      })
+      .then(() => {
+        console.log("TEST:   cubrid.endTransaction() ")
+        return conCubrid.endTransaction();
+      })
+      .then(() => {
+        console.log("DB close()");
+        // send the result to a browser.
+        res.json(result);
+        return conCubrid.close();
+      })
+      .catch(err => {
+        // Handle the error.
+        console.log("err  ==> ", err);
+        conCubrid.rollback();
+        throw err;
+      })
   });
 
 app.post('/createUserAddress',function(req,res){
       var sess = req.session;
       //var username = req.body.username;
-      var userId = req.body.username;
+      var userId = req.body.userId;
 
       var result = {};
 
@@ -634,7 +627,7 @@ app.post('/createUserAddress',function(req,res){
 //      let addressMy, pubkeyMy, privkeyMy;
 
       // CHECK REQ VALIDITY
-      if(!req.body.password || !req.body.username){
+      if(!req.body.password || !req.body.userId){
           result["success"] = 0;
           result["error"] = "invalid request";
           res.json(result);
