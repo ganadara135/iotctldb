@@ -369,18 +369,35 @@ app.post('/getBookingListByManager',function(req,res){
     var sess = req.session;
     var result = {};
 
-    fs.readFile( __dirname + "/../data/user.json", 'utf8',  function(err, data){
-        if(err){
-            throw err;    // device가 하나도 없거나, 읽을때 에러 발생
-        }
-        var userOf = JSON.parse(data);
-        var x;
-        for(x in userOf){
-          result[x] = userOf[x];
-          delete  result[x].password;
-        }
-        res.json(result);
-      })// fs.readFile  device.json
+    const promise = conCubrid.connect()
+    .then(() => {
+      console.log('connection is established');
+
+      var sql = 'SELECT * FROM [user]';
+      console.log("sql ==> ", sql)
+      return conCubrid.queryAllAsObjects(sql);
+    })
+    .then(response => {
+      // `result` is now an array of all row objects.
+      const rowsCount = response.length;
+
+      for (let i = 0; i < rowsCount; ++i) {
+        const row = response[i];
+        result[i] = response[i];
+        delete  result[i].password;
+
+        console.log(row.userid);
+        console.log(row.dateofenroll);
+        console.log(row.pubkey);
+        console.log(row.address);
+      }
+      res.json(result);
+    })
+    .catch(err => {
+      // Handle the error.
+      console.log("err  ==> ", err);
+      throw err;
+    })
   });
 
 
