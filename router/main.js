@@ -408,37 +408,67 @@ app.post('/requestAllDeviceList',urlencodedParser, function(req, res){
 
   console.log("call  requestAllDeviceList() ");
 
-  fs.readFile( __dirname + "/../data/device.json", 'utf8',  function(err, data){
-    if(err){
-        console.log("err[code]    :    ", err["code"])
-        if(err["code"] == "ENOENT"){
-          result["success"] = 0;
-          result["error"] = "Server Internal Error";
-          res.json(result);
-          return;
-        }else {
-          throw err;   // relationship 이 하나도 없거나, 에러 발생시
-        }
+  const promise = conCubrid.connect()
+  .then(() => {
+    console.log('connection is established');
+
+//    var sql = 'SELECT * FROM device';
+    var sql = 'SELECT d.devicename, d.teleport, d.deviceaddress, CAST(d.dateofenroll as varchar) ,  r.bookingtime, r.useraddress '
+    +'AS requestApprvalUser, r.approvaltime FROM device d '+
+' LEFT OUTER JOIN userdevicerelationship r ON  r.bookingtime > CAST( CONCAT(UNIX_TIMESTAMP(), '+"\'"+"000"+"\'"+') AS BIGINT)'+
+' OR r.useraddress = '+"\'"+userAddress+"\'"+' OR r.approvaltime != NULL'
+    console.log("sql ==> ", sql)
+//    return conCubrid.query(sql);
+    return conCubrid.queryAllAsObjects(sql);
+  })
+  .then(response => {
+    // `response` is now an array of all row objects.
+    const rowsCount = response.length;
+
+    for (let i = 0; i < rowsCount; ++i) {
+      const row = response[i];
+      result[i] = response[i];
+      result[i].myDevice = 0;   // 내 장치가 아님
+      console.log(" row.requestApprvalUser ==> ", row.requestApprvalUser)
+      console.log(" userAddress ==> ", userAddress)
+
+      if ( row.requestApprvalUser == userAddress){
+        result[i].myDevice = 1;
+      }
+      if ( row.approvaltime !== null){
+        result[i].myDevice = 2;
+      }
+      console.log( "row " + i +" : ", row);
     }
-      var devicesOf = JSON.parse(data);
-      fs.readFile( __dirname + "/../data/relationship.json", 'utf8',  function(err, data){
-        if(err){
-              throw err;   // relationship 이 하나도 없거나, 에러 발생시
-        }
+    // const db_result = response.result;
+    // const queryHandle = response.queryHandle;
+    //
+    // const rowsCount = db_result.RowsCount;
+    // const rows = db_result.ColumnValues;
+    //
+    // for (let i = 0; i < rowsCount; ++i) {
+    //   let columns = rows[i];
+    //   result[i] = rows[i];
+    //   result[x].myDevice = 0;   // 내 장치가 아님
+    //
+    //   result[x].myDevice = 1;   // 승인 안된 내 장치 목록.
+    //   result[x].myDevice = 2;   // 승인된 내 장치 목록.
+    //
+    //   console.log( "rows " + i +" : ", rows);
+    //   for (let j = 0, columnsCount = columns.length; j < columnsCount; ++j) {
+    //      console.log(columns[j]);
+    //   // }
+    // }
 
-        var relationshipOf = JSON.parse(data);
-        fs.readFile( __dirname + "/../data/approveBooking.json", 'utf8',  function(err, data){
-          var approveBookingOf;
-          if(err){
-            approveBookingOf = {};
-            if(err["code"] != "ENOENT"){    // 승인리스트가 없으면 에럴 던저 버린다
-              throw err;
-            }
-          }else {
-            approveBookingOf = JSON.parse(data);
-          }
+    res.json(result);
+  })
+  .catch(err => {
+    // Handle the error.
+    console.log("err  ==> ", err);
+    throw err;
+  })
 
-
+/*
               //var approveBookingOf = JSON.parse(data);
               var x,y,z;
               for(x in devicesOf){
@@ -465,6 +495,7 @@ app.post('/requestAllDeviceList',urlencodedParser, function(req, res){
           })   // fs.readFile  approveBooking.json
       })   // fs.readFile  relationship.json
     })// fs.readFile  device.json
+  */
 });
 
 
@@ -539,7 +570,6 @@ app.post('/createDeviceAddress',function(req,res){
         return conCubrid.executeWithTypedParams(sql, params, dataTypes);
       })
       .then(() => {
-
         var sql = 'INSERT INTO userdevicerelationship (deviceaddress, useraddress, dateofenroll) VALUES(?, ?, ?)';
         var params = [result["address"], deviceInputerAddress, Date.now()];
         var dataTypes = ['varchar', 'varchar', 'bigint'];
@@ -651,10 +681,6 @@ app.post('/createUserAddress',function(req,res){
           return;
       }
 
-      // LOAD DATA & CHECK DUPLICATION
-  //    var code = 15214,
-//      const conCubrid = CUBRID.createCUBRIDConnection('1.255.54.209', 33000, 'dba', '', 'demodb');
-
       const promise = conCubrid.connect()
       .then(() => {
         console.log('connection is established');
@@ -698,7 +724,7 @@ app.post('/createUserAddress',function(req,res){
         result["privkey"] = addrPubPri[0]["privkey"];
 
         var sql = 'INSERT INTO [user] (password, dateOfenroll, address, pubkey, userid) VALUES(?, ?, ?, ?, ?)';
-        var params = [req.body.password, Date.now(), result["address"], result["pubkey"], req.body.username ];
+        var params = [req.body.password, Date.now(), result["address"], result["pubkey"], userId];
         var dataTypes = ['varchar', 'bigint', 'varchar', 'varchar','varchar'];
         console.log("sql ==> ", sql)
         console.log("params ==> ", params)
