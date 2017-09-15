@@ -75,7 +75,7 @@
     function requestAllDeviceList(){
       var check_login = "<%= loginUser %>"
       if(!check_login){
-        alert("로그인 페이지로 들어오시기 바랍니다.")
+        alert("Please come into Login page.")
         location.href="/";
         return true;
       }
@@ -86,7 +86,7 @@
       if (typeof(Storage) !== "undefined") {    // 사용자 address 추출하여 연결하는 부분
         var userJsonWebstorageValue = localStorage.getItem("myJSONSecretKey");
         if(userJsonWebstorageValue == null || userJsonWebstorageValue == "" ){
-            alert("사용자주소가 등록되어 있지 않습니다. 통제시스템에 등록후사용하세요")
+            alert("Useraddress is not enrolled. Please use IoT Control System after being enrolled.")
             location.href="/";
             return;
         }else {
@@ -95,7 +95,7 @@
           console.log("myJSONwithObject.address : ",myJSONwithObject.address);
           userAddress =  myJSONwithObject.address;
           if(!myJSONwithObject.address){
-            alert("사용자주소가 등록되어 있지 않습니다. 통제시스템에 등록후사용하세요")
+            alert("Useraddress is not enrolled. Please use IoT Control System after being enrolled.")
             location.href="/";
             return;
           }
@@ -114,7 +114,7 @@
             if(userOf[x].myDevice == 0){    // 남의 장치
               content.innerHTML +=
               `
-                <div style="color:#0000FF" class="devices-list" id="list-1" isMine=${userOf[x].myDevice} deviceName=${userOf[x].deviceName} deviceAddress=${userOf[x].address}>
+                <div style="color:#0000FF" class="devices-list" id="list-1" isMine=${userOf[x].myDevice} deviceName=${userOf[x].devicename} deviceAddress=${userOf[x].deviceaddress}>
                   <div class="devices-img">
                     <img src="img/icon-airconditioner2.svg" />
                   </div>
@@ -130,7 +130,7 @@
             }else if(userOf[x].myDevice == 1){    // 내 장치
               content.innerHTML +=
               `
-                <div style="color:#FF00FF" class="devices-list" id="list-1" isMine=${userOf[x].myDevice} deviceName=${userOf[x].deviceName} deviceAddress=${userOf[x].address}>
+                <div style="color:#FF00FF" class="devices-list" id="list-1" isMine=${userOf[x].myDevice} deviceName=${userOf[x].devicename} deviceAddress=${userOf[x].deviceaddress}>
                   <div class="devices-img">
                     <img src="img/icon-airconditioner2.svg" />
                   </div>
@@ -146,7 +146,7 @@
             }else{ // (userOf[x].myDevice == 2){   // 승인된 내 장치
               content.innerHTML +=
               `
-                <div style="color:#00FFFF" class="devices-list" id="list-1" isMine=${userOf[x].myDevice} deviceName=${userOf[x].deviceName} deviceAddress=${userOf[x].address}>
+                <div style="color:#00FFFF" class="devices-list" id="list-1" isMine=${userOf[x].myDevice} deviceName=${userOf[x].devicename} deviceAddress=${userOf[x].deviceaddress}>
                   <div class="devices-img">
                     <img src="img/icon-airconditioner2.svg" />
                   </div>

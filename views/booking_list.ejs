@@ -11,7 +11,7 @@
       $(document).ready(function(){
          var check_login = "<%= loginUser %>"
          if(!check_login){
-            alert("로그인 페이지로 들어오시기 바랍니다.")
+            alert("Please come into Login page.")
             location.href="/";
             return true;
          }
@@ -22,7 +22,7 @@
            console.log(" deviceJsonWebstorageValue : ", deviceJsonWebstorageValue)
            if( userJsonWebstorageValue == null || userJsonWebstorageValue == ""
             || deviceJsonWebstorageValue == null || deviceJsonWebstorageValue == ""){
-               alert("사용자주소가 등록되어 있지 않습니다. 통제시스템에 등록후사용하세요")
+               alert("Useraddress is not enrolled. Please use IoT Control System after being enrolled.")
                location.href="/";
                return false;
            }else {
@@ -31,7 +31,7 @@
                userAddress =  myJSONwithObject.address;
                deviceAddress =  myJSONwithObjectDevice.address;
                if(!myJSONwithObject.address || !myJSONwithObjectDevice.address){
-                 alert("사용자주소가 등록되어 있지 않습니다. 통제시스템에 등록후사용하세요")
+                 alert("Useraddress is not enrolled. Please use IoT Control System after being enrolled.")
                  location.href="/";
                  return false;
                }
@@ -46,8 +46,9 @@
          xmlhttp.onreadystatechange = function() {
            if (this.readyState == 4 && this.status == 200) {
             var userOf = JSON.parse(this.responseText);
-            console.log("userOf   : ", userOf.success);
-            if(userOf.success != '0'){
+            console.log("userOf   : ", userOf);
+            console.log("userOf.success   : ", userOf.success);
+            if(userOf.success == undefined){
                for(var x in userOf){
                  booking_list.innerHTML +=
                  `<div class="list">
@@ -56,8 +57,8 @@
                    </div>
                    <div class="list-content">
                      <p class="booking-device">${userOf[x].deviceAddress}</p>
-                     <p class="booking-date">${new Date(userOf[x].enrolledDate).toLocaleDateString()} ${new Date(userOf[x].enrolledDate).toLocaleTimeString()}</p>
-                     <p class="using-time">${new Date(userOf[x].bookingTime).toLocaleDateString()} ${new Date(userOf[x].bookingTime).toLocaleTimeString()}</p>
+                     <p class="booking-date">${new Date(new Number(userOf[x].dateOfenroll)).toLocaleDateString()} ${new Date(new Number(userOf[x].dateOfenroll)).toLocaleTimeString()}</p>
+                     <p class="using-time">${new Date(new Number(userOf[x].bookingTime)).toLocaleDateString()} ${new Date(new Number(userOf[x].bookingTime)).toLocaleTimeString()}</p>
                      <p>
                        <button class="reject-bt" onclick="alert('You pressed Reject button')">Reject</button>
                        <button class="admin-bt" userAddress=${userOf[x].userAddress} deviceAddress=${userOf[x].deviceAddress} bookingTime=${userOf[x].bookingTime}>Approve</button>

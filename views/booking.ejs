@@ -10,7 +10,7 @@
       // session 처리
       var check_login = "<%= loginUser %>"
       if(!check_login){
-        alert("로그인 페이지로 들어오시기 바랍니다.")
+        alert("Please come into Login page.")
         location.href="/";
         return true;
       }
@@ -38,7 +38,7 @@
               var myObj  = JSON.parse(JSON.parse(xprivkey));
               msg = myObj.privkey;
           } else {
-              msg = "등록된 사용자의 비밀키가 없습니다.";
+              msg = "There are no enrolled priavekey";
           }
       } else {
           msg = "Sorry, your browser does not support web storage...";
@@ -71,7 +71,7 @@
 //              myObjDevice  = JSON.parse(JSON.parse(myJSONdevice));
               //msg = myObj.privkey;
           } else {
-              alert("localStorage 에 문제가 발생했습니다.")
+              alert("localStorage is in trouble.")
               return;
           }
       } else {
@@ -85,9 +85,9 @@
       var oneHour = 60000 * 10 * 6;
 
       if(bookingDate.getTime() >= currentDate.getTime() + oneHour){
-        alert("입력한 시간으로 예약합니다  : "  + bookingDate.toISOString() +" / " + bookingDate.getTime());
+        alert("do booking on the inputted time  : "  + bookingDate.toISOString() +" / " + bookingDate.getTime());
       }else{
-        alert("UNVALIDITY : 1시간 앞서 예약하세요");
+        alert("UNVALIDITY : do booking 1 hours in advance.");
         return false;
       }
 

@@ -33,143 +33,21 @@ const multichain = bluebird.promisifyAll(require("multichain-node")(connection),
 module.exports = function(app, fs, jsonParser, urlencodedParser, client_token_arg ,address_param )
 {
 
-
 app.post('/approveBooking',function(req,res){
   var sess = req.session;
+  var userId = sess.loginUser;
   var userAddress = req.body.userAddress;
   var deviceAddress = req.body.deviceAddress;
   var userPrivkey = req.body.userPrivkey;   // 관리자 비밀키
-  var bookingTime = new Number(req.body.bookingTime);
+//  var bookingTime = new Number(req.body.bookingTime);
   var result = {};
 
   console.log("req.body  approveBooking ()   : ", req.body);
+//  console.log("bookingTime : ", bookingTime)
 
   // 1. 보내준 값 유효범위 체크
   // 2. 해당 예약내역 있는지 체크
   // 3. BookingApproval.json  및 블록체인에 기록
-
-  // 1. 보내준 값 유효범위 체크
-  if(!req.body.userAddress || !req.body.userAddress){
-      result["success"] = 0;
-      result["error"] = "invalid request";
-      res.json(result);
-      return;
-  }
-
-  // 2. 해당 예약내역 있는지 체크
-  fs.readFile( __dirname + "/../data/relationship.json", 'utf8',  function(err, data){
-    var relationshipOf = JSON.parse(data);
-//    var y;
-    var countRelationship = Object.keys(relationshipOf).length;
-
-    if(err){
-       throw err;
-    }
-
-
-    // y 111111111 ========>   14Ghx441QqgHrUErWicep7wLbf9NB12MRrjQgt      1Y5bxWUZzYe4dfVcaJmsN26EDy96vq6geNKiwV1504438200000
-    // bookingApproval  ==>  { '14Ghx441QqgHrUErWicep7wLbf9NB12MRrjQgt     1U9q1ZggsFASYccLzPm67mJNP89E72UR3ruTqy1504438200000':
-    //    { deviceAddress: '1U9q1ZggsFASYccLzPm67mJNP89E72UR3ruTqy',
-    //      userAddress: '14Ghx441QqgHrUErWicep7wLbf9NB12MRrjQgt',
-    //      enrolledDate: 1504431051540,
-    //      bookingTime: 1504438200000,
-    //      approvalTime: 1504432191565 } }
-    //  y 2222222222 ========>   14Ghx441QqgHrUErWicep7wLbf9NB12MRrjQgt    1U9q1ZggsFASYccLzPm67mJNP89E72UR3ruTqy1504438200000
-
-
-//    console( "relationshipOf.length   :    ",
-    for(const y in relationshipOf){
-//      countRelationship--;
-      if(relationshipOf[y].bookingTime > Date.now() && relationshipOf[y].userAddress == userAddress
-            && relationshipOf[y].deviceAddress == deviceAddress){
-// console.log("deviceAddress  : ", deviceAddress);
-// console.log("relationshipOf[y].deviceAddress  ==> ", relationshipOf[y].deviceAddress);
-// console.log("relationshipOf[y]  ==> ", relationshipOf[y]);
-// console.log(" y 111111111 ========>  ", y)
-          fs.readFile( __dirname + "/../data/approveBooking.json", 'utf8',  function(err, data){
-            var bookingApproval = JSON.parse(data);
-            // console.log("bookingApproval  ==> ", bookingApproval);
-            // console.log(" y 2222222222 ========>  ", y)
-            bookingApproval[y] = {};
-            // console.log(" bookingApproval[y]  1111 ========>  ", bookingApproval[y])
-            bookingApproval[y] =  relationshipOf[y];
-            // console.log(" bookingApproval[y]  2222 ========>  ", bookingApproval[y])
-            bookingApproval[y].approvalTime = Date.now();
-          // console.log("   write approveBooking.json bookingApproval[y] : ", bookingApproval[y]);
-          fs.writeFile(__dirname + "/../data/approveBooking.json", JSON.stringify(bookingApproval, null, '\t'), "utf8", function(err, data){
-            if(err){
-                throw err;
-            }
-          }) // fs.writeFile approveBooking.json
-
-          console.log("call createRawSendFrom()");
-  //        return multichain.validateAddressPromise({address: this.address1})
-          multichain.createRawSendFromPromise({
-              from: userAddress,
-              to: {},
-              msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(
-                      bookingApproval)).toString("hex")}],
-        //              action: "send"
-          })         // signrawtransaction [paste-hex-blob] '[]' '["privkey"]'
-          .then(hexstringblob => {
-            // console.log("hexstringblob  : ", hexstringblob);
-
-            assert(hexstringblob)
-
-            return multichain.signRawTransactionPromise({
-              hexstring: hexstringblob,
-        //        parents: [],
-              privatekeys: [userPrivkey]
-          })
-        })      //  sendrawtransaction [paste-bigger-hex-blob]
-        .then(hexvalue => {
-          // console.log("hexvalue.hex  : ", hexvalue.hex);
-
-          assert(hexvalue)
-
-          return multichain.sendRawTransactionPromise({
-              hexstring: hexvalue.hex
-          })
-        })
-        .then(tx_hex => {
-            console.log("tx_hex  : ", tx_hex);
-            assert(tx_hex)
-
-            console.log("Finished Successfully");
-            result["success"] = 1;
-            result["error"] = "Approval Completed";
-            res.json(result);
-             return true;   // to stop send  res.json(result) again behind
-        })
-        .catch(err => {
-            console.log(err)
-            throw err;
-        })
-
-        })  // fs.readFile  approveBooking.json
-      }
-    }   // for
-
-    // console.log("Object.keys(result).length : ", Object.keys(result).length)
-    // if(Object.keys(result).length == 0 && countRelationship <= 0 ){
-    //     result["success"] = 0;
-    //     result["errror"] = "No Booking List in approveBooking()";
-    // }
-    // res.json(result);
-  }) //fs.readFile   relationship.json
-});
-
-
-app.post('/getBookingListByManager',function(req,res){
-  var sess = req.session;   // sess.loginUser,  sess.userAddress
-  var userAddress = req.body.userAddress;
-  var deviceAddress = req.body.deviceAddress;
-  var result = {};
-//  console.log("Object.keys(result).length : ", Object.keys(result).length)
-  console.log("req.body  : ", req.body);
-  // 1. 보내준 값 유효범위 체크
-  // 2. 매니저 권한이 있는지 체크
-  // 3. relationship.json 에서 관련 데이터 목록화하여 던저줌
 
   // 1. 보내준 값 유효범위 체크
   if(!req.body.userAddress || !req.body.deviceAddress){
@@ -178,79 +56,176 @@ app.post('/getBookingListByManager',function(req,res){
       res.json(result);
       return;
   }
+  if(userId !== "admin"){
+    result["success"] = 0;
+    result["error"] = "No Manager Authority";
+    res.json(result);
+    return false;
+  }
 
+  const promise = conCubrid.connect()
+  .then(() => {
+    console.log('connection is established');
+
+    var sql = 'SELECT deviceaddress as deviceAddress, useraddress AS userAddress, '
+    +' CAST(bookingtime AS VARCHAR) AS bookingTime, CAST(approvaltime AS VARCHAR) AS approvalTime,'
+    +' CAST(dateofenroll AS VARCHAR) AS dateOfenroll FROM userdevicerelationship WHERE bookingtime > '
+    +' CAST( CONCAT(UNIX_TIMESTAMP(), '+"\'"+"000"+"\'"+' ) AS BIGINT) AND approvaltime IS NULL';
+
+    console.log("sql ==> ", sql)
+    return conCubrid.queryAllAsObjects(sql);
+  })
+  .then(response => {
+  // `result` is now an array of all row objects.
+    assert(response)
+    const rowsCount = response.length;
+
+    if(rowsCount > 0){
+      console.log("beginTransaction()  ");
+      result = response[0];
+      return conCubrid.beginTransaction();
+    }else if(rowsCount == 0){
+      result["success"] = 0;
+      result["error"] = "no booking list";
+      res.json(result);
+      conCubrid.close();
+      assert(false);
+    }
+  })
+  .then(() => {
+      console.log("call createRawSendFrom()");
+      console.log("result of response   ==> ", result)
+      return multichain.createRawSendFromPromise({
+          from: userAddress,
+          to: {},
+          msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(
+                  result)).toString("hex")}],
+    //              action: "send"
+      })
+
+  })        // signrawtransaction [paste-hex-blob] '[]' '["privkey"]'
+  .then(hexstringblob => {
+      assert(hexstringblob)
+
+      return multichain.signRawTransactionPromise({
+        hexstring: hexstringblob,
+  //        parents: [],
+        privatekeys: [userPrivkey]
+    })
+  })
+  .then(hexvalue => {
+    assert(hexvalue)
+
+    return multichain.sendRawTransactionPromise({
+      hexstring: hexvalue.hex
+    })
+  })
+  .then(tx_hex => {
+    assert(tx_hex)
+
+    console.log(" DB update() ")
+    var sql = 'UPDATE userdevicerelationship SET approvaltime='+"\'"+Date.now()+"\'"
+    +' WHERE useraddress='+"\'"+userAddress+"\'"+' AND deviceAddress='+"\'"+deviceAddress+"\'"
+    +' AND bookingtime IS NOT NULL AND approvaltime IS NULL';
+    console.log("sql  ==> ", sql);
+    return conCubrid.execute(sql);
+  })
+  .then(() => {
+    console.log("TEST:   cubrid.commit() ")
+    return conCubrid.commit();
+  })
+  .then(() => {
+    console.log("TEST:   cubrid.endTransaction() ")
+    return conCubrid.endTransaction();
+  })
+  .then(() => {
+    console.log("Finished Successfully");
+    result["success"] = 1;
+    result["error"] = "Approval Completed";
+    res.json(result);
+    console.log("DB close()");
+    return conCubrid.close();
+  })
+  .catch(err => {
+    // Handle the error.
+    console.log("err  ==> ", err);
+    result["success"] = 0;
+    result["error"] = "error on server";
+    res.json(result);
+    conCubrid.close();
+    throw err;
+  })
+});
+
+
+app.post('/getBookingListByManager',function(req,res){
+  var sess = req.session;   // sess.loginUser,  sess.userAddress
+  var userId = sess.loginUser;
+  var userAddress = req.body.userAddress;
+//  var deviceAddress = req.body.deviceAddress;
+  var result = {};
+//  console.log("Object.keys(result).length : ", Object.keys(result).length)
+
+  console.log("call  getBookingListByManager() ");
+
+  console.log("req.body  : ", req.body);
+
+  // 1. 보내준 값 유효범위 체크
   // 2. 매니저 권한이 있는지 체크
-//  var managerAuthorityCheck = false;
-  fs.readFile( __dirname + "/../data/user.json", 'utf8',  function(err, data){
-      var userOf = JSON.parse(data);
-//      var x;
+  // 3. relationship.json 에서 관련 데이터 목록화하여 던저줌
 
-//      for(x in userOf){
-        // 하드코딩함
-      console.log("userOf[admin]  : ", userOf["admin"]);
-      console.log("userOf[admin2]  : ", userOf["admin2"]);
+  if(!req.body.userAddress){
+      result["success"] = 0;
+      result["error"] = "invalid request";
+      res.json(result);
+      return;
+  }
+  console.log("userId : ", userId)
 
-      if((userOf["admin"] != undefined && userOf["admin"].address == userAddress)
-       || (userOf["admin2"] != undefined && userOf["admin2"].address == userAddress)){
-          //managerAuthorityCheck = true;
 
-          // 3. relationship.json 엔 있고 approvalBooking.json에 없는 데이터를 목록화하여 던저줌
-          fs.readFile( __dirname + "/../data/relationship.json", 'utf8',  function(err, data){
-            if(err){
-               console.log("err    :    ", err)
-               throw err;
-            }
-//            console.log("data  relationship.json -> ", data)
-            var relationshipOf = JSON.parse(data);
-//            var approvalBookingOf = {};
+  if(userId !== "admin"){
+    result["success"] = 0;
+    result["error"] = "No Manager Authority";
+    res.json(result);
+    return false;
+  }
 
-            fs.readFile( __dirname + "/../data/approveBooking.json", 'utf8',  function(err, data){
-              var approveBookingOf;
-              if(err){
-                approveBookingOf = {};
-                if(err["code"] != "ENOENT"){
-                  throw err;
-                }
-              }else {
-                approveBookingOf = JSON.parse(data);
-              }
+  const promise = conCubrid.connect()
+  .then(() => {
+    console.log('connection is established');
 
-              //var y,z;
-              for(const y in relationshipOf){
-                if(relationshipOf[y].bookingTime > Date.now()){
-                    var check_approval = false;
-                    for(const z in approveBookingOf){
-                      // console.log("relationshipOf[y].deviceAddress : ", relationshipOf[y].deviceAddress);
-                      // console.log("approveBookingOf[z].deviceAddress : ", approveBookingOf[z].deviceAddress);
+    var sql = 'SELECT deviceaddress as deviceAddress, useraddress AS userAddress, '
+    +' CAST(bookingtime AS VARCHAR) AS bookingTime, CAST(approvaltime AS VARCHAR) AS approvalTime,'
+    +' CAST(dateofenroll AS VARCHAR) AS dateOfenroll FROM userdevicerelationship WHERE bookingtime > '
+    +' CAST( CONCAT(UNIX_TIMESTAMP(), '+"\'"+"000"+"\'"+' ) AS BIGINT) AND approvaltime IS NULL';
 
-                      if( relationshipOf[y].deviceAddress == approveBookingOf[z].deviceAddress &&
-                      relationshipOf[y].userAddress == approveBookingOf[z].userAddress){
-//                    relationshipOf[y].bookingTime == approveBookingOf[z].bookingTime){
-                          check_approval = true;
-                      }
-                    }
-                    if(check_approval == false){
-                      result[y] = relationshipOf[y];
-                    }
-                }
-              }
-              console.log("Object.keys(result).length : ", Object.keys(result).length)
+    console.log("sql ==> ", sql)
+    return conCubrid.queryAllAsObjects(sql);
+  })
+  .then(response => {
+  // `result` is now an array of all row objects.
+    const rowsCount = response.length;
 
-              if(Object.keys(result).length == 0){
-                result["success"] = 0;
-                result["error"] = "No Booking List in getBookingListByManager()";
-              }
-              res.json(result);
-              return true;
-            });  //   fs.readFile( approvalBooking.json.
-          });  //fs.readFile  relationship.json
-        }else {
-          result["success"] = 0;
-          result["error"] = "No Manager Authority";
-          res.json(result);
-          return true;
-        }
-  })  //fs.readFile  user.json
+    if(rowsCount > 0){
+      for (let i = 0; i < rowsCount; ++i) {
+        const row = response[i];
+        result[i] = response[i];
+      }
+    }else if(rowsCount == 0){
+      result["success"] = 0;
+      result["error"] = "no booking list";
+    }
+    res.json(result);
+    return conCubrid.close();
+  })
+  .catch(err => {
+    // Handle the error.
+    console.log("err  ==> ", err);
+    result["success"] = 0;
+    result["error"] = "error on server";
+    res.json(result);
+    throw err;
+  })
 });
 
   app.post('/bookingDevice',function(req,res){
@@ -259,8 +234,13 @@ app.post('/getBookingListByManager',function(req,res){
     var deviceAddress = req.body.deviceAddress;
     var deviceName = req.body.deviceName;
     var userPrivkey = req.body.userPrivkey;
-    var bookingTime = new Number(req.body.bookingTime);
+    //var bookingTime = new Number(req.body.bookingTime);
+    var bookingTime = req.body.bookingTime;
     var result = {};
+    var paramsOfsql = {};
+
+    console.log("call  bookingDevice() " )
+    console.log("bookingTime   => ", bookingTime)
 
     console.log("req.body  : ", req.body);
 
@@ -268,7 +248,7 @@ app.post('/getBookingListByManager',function(req,res){
     // 2. 해당 디바이스가 있는지 체크
     // 3. 권한 요청 승인 기록 (RDB relationship,  Blockchain 각각에)
     //    3.1. 예약유효기간은 예약시각의 30분이내
-    //    3.2. relationship.approvalBooking = true, false. (default=false)
+    //    3.2. relationship.approvalTime = Date.now();
 
     // 1. 보내준 값 유효범위 체크
     if(!req.body.deviceName || !req.body.userAddress){
@@ -278,90 +258,100 @@ app.post('/getBookingListByManager',function(req,res){
         return;
     }
 
-    fs.readFile( __dirname + "/../data/device.json", 'utf8',  function(err, data){
-        if(err){
-            throw err;
-        }
-        var devices = JSON.parse(data);
-        // 2. 해당 디바이스가 있는지 체크
-        if(!devices[deviceName]){
-            result["success"] = 0;
-            result["error"] = "No device";
-            res.json(result);
-            return;
-        }
 
-        // 3. 권한 요청 승인 기록 (RDB relationship,  Blockchain 각각에)
-        //    3.1. 예약유효기간은 예약시각의 30분이내
-        //    3.2. relationship.approvalBooking = true, false. (default=false)
-         fs.readFile( __dirname + "/../data/relationship.json", 'utf8',  function(err, data){
-             if(err){
-                 throw err;
-             }
-             var relationshipOf = JSON.parse(data);
+    const promise = conCubrid.connect()
+    .then(() => {
+      console.log('connection is established');
 
-             // relationshiop.json 은  장치관리자주소 + 장치주소 + bookingTime 로 고유번호부여
-             relationshipOf[userAddress+deviceAddress+bookingTime] = {};
-             relationshipOf[userAddress+deviceAddress+bookingTime].deviceAddress = deviceAddress;
-             relationshipOf[userAddress+deviceAddress+bookingTime].userAddress = userAddress;
-             relationshipOf[userAddress+deviceAddress+bookingTime].enrolledDate = Date.now();
-//             relationshipOf[userAddress+deviceAddress+bookingTime].approvalBooking = false;
-             relationshipOf[userAddress+deviceAddress+bookingTime].bookingTime = bookingTime;
+      // CHECK whether it is
+//      var sql = 'SELECT * FROM userdevicerelationship WHERE useraddress = '+"'"+sess.userAddress+"'" + ' AND deviceaddress = '+"'"+deviceAddress+"'";
+      var sql = 'SELECT * FROM device WHERE deviceaddress = '+"'"+deviceAddress+"'";
+      console.log("sql ==> ", sql)
+      return conCubrid.query(sql);
+    })
+    .then(response => {
+      //assert(response.result.RowsCount === 0);
+      // check whether device exist or not
+      if( response.result.RowsCount > 0){
+        console.log("beginTransaction()  ");
+        return conCubrid.beginTransaction();
+      }else if(response.result.RowsCount === 0){
+        // DUPLICATION FOUND
+        result["success"] = 0;
+        result["error"] = "no exist of device";
+        res.json(result);
+        conCubrid.close();
+        //return false;   // checked by assert(addrPubPri);
+        assert(false);  // stop promise
+      }
+    })
+    .then(() => {
+      var sql = 'INSERT INTO userdevicerelationship (deviceaddress, useraddress, dateofenroll, bookingtime) VALUES(?, ?, ?, ?)';
+      var params = [deviceAddress, userAddress, Date.now(), bookingTime];
+      var dataTypes = ['varchar', 'varchar', 'bigint','bigint'];
+      console.log("sql of relationshiop ==> ", sql)
+      console.log("params ==> ", params)
+      paramsOfsql = params;
 
+      return conCubrid.executeWithTypedParams(sql, params, dataTypes);
+    })
+    .then(() => {
 
-          fs.writeFile(__dirname + "/../data/relationship.json", JSON.stringify(relationshipOf, null, '\t'), "utf8", function(err, data){
-            if(err){
-                throw err;
-            }
-          }) // fs.writeFile relationship.json
+      console.log("TEST: CREATE RAW SEND FROM");
 
-          console.log("call createRawSendFrom()");
-  //        return multichain.validateAddressPromise({address: this.address1})
-          multichain.createRawSendFromPromise({
-              from: userAddress,
-              to: {},
-              msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(
-                      relationshipOf)).toString("hex")}],
-        //              action: "send"
-          })         // signrawtransaction [paste-hex-blob] '[]' '["privkey"]'
-          .then(hexstringblob => {
-            console.log("hexstringblob  : ", hexstringblob);
+      // var textvall = new Buffer(JSON.stringify(devices[deviceName])).toString("hex")
+      // const buf222 = new Buffer(textvall, 'hex');
+      // console.log("buf222.toString()   :  ", buf222.toString());
+      return multichain.createRawSendFromPromise({
+        from: userAddress,
+        to: {},
+        msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(paramsOfsql)).toString("hex")}]
+      })
+    })         // signrawtransaction [paste-hex-blob] '[]' '["privkey"]'
+    .then(hexstringblob => {
+      console.log("hexstringblob  : ", hexstringblob);
+      assert(hexstringblob)
 
-            assert(hexstringblob)
-                // 이 부분만 curl 로 클라이언트에서 직접 처리 할 수 있다.
-                //  curl --user myusername --data-binary '{"jsonrpc": "1.0", "id":"curltest", "method": "MyMultichain signrawtransaction", "params": ["myhex"] }' -H 'content-type: text/plain;' http://127.0.0.1:7206
-            return multichain.signRawTransactionPromise({
-              hexstring: hexstringblob,
-        //        parents: [],
-              privatekeys: [userPrivkey]
-          })
-        })      //  sendrawtransaction [paste-bigger-hex-blob]
-        .then(hexvalue => {
-          console.log("hexvalue.hex  : ", hexvalue.hex);
+      return multichain.signRawTransactionPromise({
+          hexstring: hexstringblob,
+    //        parents: [],
+          privatekeys: [userPrivkey]
+      })
+    })      //  sendrawtransaction [paste-bigger-hex-blob]
+    .then(hexvalue => {
+      console.log("hexvalue.hex  : ", hexvalue.hex);
+      assert(hexvalue)
 
-          assert(hexvalue)
+      return multichain.sendRawTransactionPromise({
+          hexstring: hexvalue.hex
+      })
+    })
+    .then(tx_hex => {
+      console.log("tx_hex  : ", tx_hex);
+      assert(tx_hex)
 
-          return multichain.sendRawTransactionPromise({
-              hexstring: hexvalue.hex
-          })
-        })
-        .then(tx_hex => {
-            console.log("tx_hex  : ", tx_hex);
-
-            assert(tx_hex)
-
-            console.log("Finished Successfully");
-            result["success"] = 1;
-            result["error"] = "Booking Completed";
-            res.json(result);
-        })
-        .catch(err => {
-            console.log(err)
-            throw err;
-        })
-
-      }) //fs.readFile relationship.json
-    })  //fs.readFile device.json
+      console.log("TEST:   cubrid.commit() ")
+      return conCubrid.commit();
+    })
+    .then(() => {
+      console.log("TEST:   cubrid.endTransaction() ")
+      return conCubrid.endTransaction();
+    })
+    .then(() => {
+      console.log("DB close()");
+      // send the result to a browser.
+      res.json(result);
+      return conCubrid.close();
+    })
+    .catch(err => {
+      // Handle the error.
+      console.log("err  ==> ", err);
+      conCubrid.rollback();
+      result["success"] = 0;
+      result["error"] = "error on server";
+      res.json(result);
+      throw err;
+    })
   });
 
 
@@ -392,10 +382,14 @@ app.post('/getBookingListByManager',function(req,res){
         console.log(row.address);
       }
       res.json(result);
+      return conCubrid.close();
     })
     .catch(err => {
       // Handle the error.
       console.log("err  ==> ", err);
+      result["success"] = 0;
+      result["error"] = "error on server";
+      res.json(result);
       throw err;
     })
   });
@@ -413,15 +407,26 @@ app.post('/requestAllDeviceList',urlencodedParser, function(req, res){
     console.log('connection is established');
 
 //    var sql = 'SELECT * FROM device';
-    var sql = 'SELECT d.devicename, d.teleport, d.deviceaddress, CAST(d.dateofenroll as varchar) ,  r.bookingtime, r.useraddress '
-    +'AS requestApprvalUser, r.approvaltime FROM device d '+
-' LEFT OUTER JOIN userdevicerelationship r ON  r.bookingtime > CAST( CONCAT(UNIX_TIMESTAMP(), '+"\'"+"000"+"\'"+') AS BIGINT)'+
-' OR r.useraddress = '+"\'"+userAddress+"\'"+' OR r.approvaltime != NULL'
+//     var sql = 'SELECT d.devicename, d.teleport, d.deviceaddress, CAST(d.dateofenroll as varchar) AS dateofenroll,  r.bookingtime, r.useraddress '
+//     +'AS requestApprvalUser, r.approvaltime, r.dateofenroll AS relatedday FROM device d '+
+// ' LEFT OUTER JOIN userdevicerelationship r ON  r.bookingtime > CAST( CONCAT(UNIX_TIMESTAMP(), '+"\'"+"000"+"\'"+') AS BIGINT)'+
+// ' OR r.useraddress = '+"\'"+userAddress+"\'"+' OR r.approvaltime != NULL'
+    // var sql = 'SELECT d.devicename, d.deviceaddress, r.dateofenroll, d.inputoraddress, CAST(d.dateofenroll as varchar) AS dateofenroll,'
+    // + ' r.bookingtime, r.useraddress AS ruseraddress, r.approvaltime, r.dateofenroll AS rdateofenroll FROM device d  LEFT OUTER JOIN '
+    // + ' (SELECT * FROM userdevicerelationship WHERE useraddress = '+"\'"+userAddress+"\'"+' ) AS r ON d.deviceaddress'
+    // + ' = r.deviceaddress';
+    var sql = 'SELECT d.devicename, d.deviceaddress, d.inputoraddress, CAST(d.dateofenroll as varchar) AS dateofenroll,'
+    + ' CAST(r.bookingtime AS VARCHAR) AS rbookingtime, CAST(r.approvaltime AS VARCHAR) AS rapprovaltime, '
+    + ' CAST(r.dateofenroll AS VARCHAR) AS rdateofenroll, r.useraddress AS ruseraddress FROM device d  LEFT OUTER JOIN '
+    + ' (SELECT * FROM userdevicerelationship WHERE useraddress = '+"\'"+userAddress+"\'"+' ) AS r ON d.deviceaddress'
+    + ' = r.deviceaddress';
+
     console.log("sql ==> ", sql)
 //    return conCubrid.query(sql);
     return conCubrid.queryAllAsObjects(sql);
   })
   .then(response => {
+    assert(response)
     // `response` is now an array of all row objects.
     const rowsCount = response.length;
 
@@ -429,73 +434,27 @@ app.post('/requestAllDeviceList',urlencodedParser, function(req, res){
       const row = response[i];
       result[i] = response[i];
       result[i].myDevice = 0;   // 내 장치가 아님
-      console.log(" row.requestApprvalUser ==> ", row.requestApprvalUser)
-      console.log(" userAddress ==> ", userAddress)
 
-      if ( row.requestApprvalUser == userAddress){
+//      if ( row.ruseraddress == userAddress){   //승인 요청된
+      if ( row.rbookingtime !== null || row.ruseraddress == userAddress){   //승인 요청되거나 내가 등록한 장치
         result[i].myDevice = 1;
       }
-      if ( row.approvaltime !== null){
+      if ( row.rapprovaltime !== null){   //승인 완료된
         result[i].myDevice = 2;
       }
       console.log( "row " + i +" : ", row);
     }
-    // const db_result = response.result;
-    // const queryHandle = response.queryHandle;
-    //
-    // const rowsCount = db_result.RowsCount;
-    // const rows = db_result.ColumnValues;
-    //
-    // for (let i = 0; i < rowsCount; ++i) {
-    //   let columns = rows[i];
-    //   result[i] = rows[i];
-    //   result[x].myDevice = 0;   // 내 장치가 아님
-    //
-    //   result[x].myDevice = 1;   // 승인 안된 내 장치 목록.
-    //   result[x].myDevice = 2;   // 승인된 내 장치 목록.
-    //
-    //   console.log( "rows " + i +" : ", rows);
-    //   for (let j = 0, columnsCount = columns.length; j < columnsCount; ++j) {
-    //      console.log(columns[j]);
-    //   // }
-    // }
-
     res.json(result);
+    return conCubrid.close();
   })
   .catch(err => {
     // Handle the error.
     console.log("err  ==> ", err);
+    result["success"] = 0;
+    result["error"] = "error on server";
+    res.json(result);
     throw err;
   })
-
-/*
-              //var approveBookingOf = JSON.parse(data);
-              var x,y,z;
-              for(x in devicesOf){
-                result[x] = devicesOf[x];
-                result[x].myDevice = 0;     // 내 장치가 아님
-              }
-              for(y in relationshipOf){
-              //  console.log(relationshipOf[y].userAddress)
-                if(relationshipOf[y].userAddress == userAddress){
-              //    console.log(relationshipOf[y].deviceAddress);
-                  for(x in devicesOf){
-                    if(devicesOf[x].address == relationshipOf[y].deviceAddress){ // && relationshipOf[y].bookingTime > Date.now()){
-                      result[x].myDevice = 1;   // 승인 안된 내 장치 목록.
-                      for(z in approveBookingOf){
-                        if(y == z){
-                            result[x].myDevice = 2;  // 승인된 사용가능 장치
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              res.json(result);
-          })   // fs.readFile  approveBooking.json
-      })   // fs.readFile  relationship.json
-    })// fs.readFile  device.json
-  */
 });
 
 
@@ -614,7 +573,7 @@ app.post('/createDeviceAddress',function(req,res){
           from: result["address"],
           to: {},
           msg : [{"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(paramsOfsql[0])).toString("hex")},
-                {"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(paramsOfsql[0]).toString() ).toString("hex")}]
+                {"for":"BookingStream","key":"bookingTime","data":new Buffer(JSON.stringify(paramsOfsql[1]).toString() ).toString("hex")}]
         })
       })         // signrawtransaction [paste-hex-blob] '[]' '["privkey"]'
       .then(hexstringblob => {
@@ -957,10 +916,7 @@ app.post('/createUserAddress',function(req,res){
         userAddress: sess.userAddress
     })
   })
-  // app.get('/main/:username/:useraddress',function(req,res){
-  //   console.log("call main()");
-  //   res.render('main');
-  // })
+
   app.get('/signup',function(req,res){   // 사용자 등록화면
     var sess = req.session;
     console.log("call signup()");
