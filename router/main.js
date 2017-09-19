@@ -32,6 +32,55 @@ const multichain = bluebird.promisifyAll(require("multichain-node")(connection),
 
 module.exports = function(app, fs, jsonParser, urlencodedParser, client_token_arg ,address_param )
 {
+app.get('/GPSrequest',function(req,res){
+  var sess = req.session;
+  console.log("call GPSrequest()");
+  res.render('GPSrequest', {
+      title: "GPSrequest page",
+      length: 5,
+      loginUser: sess.loginUser,
+      userAddress: sess.userAddress
+  })
+});
+
+app.post('/GPStracking',function(req,res){
+  var sess = req.session;
+  var userId = sess.loginUser;
+  var userAddress = req.body.userAddress;
+  var deviceAddress = req.body.deviceAddress;
+  var userPrivkey = req.body.userPrivkey;   // 관리자 비밀키
+//  var bookingTime = new Number(req.body.bookingTime);
+  var result = {};
+  console.log("req.body  GPStracking()   : ", req.body);
+  console.log("call GPStracking()");
+
+  // 2. 해당 예약내역 있는지 체크
+  fs.readFile( __dirname + "/../data/GPSofDevice.json", 'utf8',  function(err, data){
+
+//    var x;
+    // var countRelationship = Object.keys(relationshipOf).length;
+
+    if(err){
+       throw err;
+    }
+    var GPSof = JSON.parse(data);
+
+    if(GPSof[deviceAddress]){
+      result = GPSof[deviceAddress];
+    }else {
+      result["success"] = 0;
+      result["error"] = "No GPS data";
+    }
+    res.json(result);
+
+    // for(const x in GPSof){
+    //   console.log("Finished Successfully");
+    //   if(GPSof[x] = )
+    //   result[x] = GPSof[x]
+    // }
+
+  })
+});
 
 app.post('/approveBooking',function(req,res){
   var sess = req.session;

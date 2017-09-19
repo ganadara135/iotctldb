@@ -56,8 +56,8 @@
          }
          xmlhttp.open("POST", "/getBookingListByManager", true);  //true Asyc, false syc
          xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-         xmlhttp.send("userAddress="+userAddress);
-         //xmlhttp.send("userAddress="+userAddress+"&"+"deviceAddress="+deviceAddress);
+         //xmlhttp.send("userAddress="+userAddress);
+         xmlhttp.send("userAddress="+userAddress+"&"+"deviceAddress="+deviceAddress);
       });
       </script>
 
