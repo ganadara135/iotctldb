@@ -32,6 +32,49 @@ const multichain = bluebird.promisifyAll(require("multichain-node")(connection),
 
 module.exports = function(app, fs, jsonParser, urlencodedParser, client_token_arg ,address_param )
 {
+app.get('/multilangTest',function(req,res){
+  var sess = req.session;
+  var result = {};
+
+  const promise = conCubrid.connect()
+  .then(() => {
+    console.log('connection is established');
+
+    var sql = 'SELECT * from device';
+
+    console.log("sql ==> ", sql)
+    return conCubrid.queryAllAsObjects(sql);
+  })
+  .then(response => {
+  // `result` is now an array of all row objects.
+    assert(response)
+    const rowsCount = response.length;
+
+    if(rowsCount > 0){
+      console.log("beginTransaction()  ");
+      result = response;
+      console.log("result : ", result)
+      console.log("response : ", response)
+      res.json(result);
+    }else if(rowsCount == 0){
+      result["success"] = 0;
+      result["error"] = "no booking list";
+      res.json(result);
+      conCubrid.close();
+      assert(false);
+    }
+  })
+  .catch(err => {
+    // Handle the error.
+    console.log("err  ==> ", err);
+    result["success"] = 0;
+    result["error"] = "error on server";
+    res.json(result);
+    conCubrid.close();
+    throw err;
+  })
+});
+
 app.get('/GPSrequest',function(req,res){
   var sess = req.session;
   console.log("call GPSrequest()");
@@ -105,12 +148,12 @@ app.post('/approveBooking',function(req,res){
       res.json(result);
       return;
   }
-  if(userId !== "admin"){
-    result["success"] = 0;
-    result["error"] = "No Manager Authority";
-    res.json(result);
-    return false;
-  }
+  // if(userId !== "admin"){
+  //   result["success"] = 0;
+  //   result["error"] = "No Manager Authority";
+  //   res.json(result);
+  //   return false;
+  // }
 
   const promise = conCubrid.connect()
   .then(() => {
@@ -232,12 +275,12 @@ app.post('/getBookingListByManager',function(req,res){
   console.log("userId : ", userId)
 
 
-  if(userId !== "admin"){
-    result["success"] = 0;
-    result["error"] = "No Manager Authority";
-    res.json(result);
-    return false;
-  }
+  // if(userId !== "admin"){
+  //   result["success"] = 0;
+  //   result["error"] = "No Manager Authority";
+  //   res.json(result);
+  //   return false;
+  // }
 
   const promise = conCubrid.connect()
   .then(() => {
@@ -283,6 +326,7 @@ app.post('/getBookingListByManager',function(req,res){
     var deviceAddress = req.body.deviceAddress;
     var deviceName = req.body.deviceName;
     var userPrivkey = req.body.userPrivkey;
+    var purpose = req.body.purpose;
     //var bookingTime = new Number(req.body.bookingTime);
     var bookingTime = req.body.bookingTime;
     var result = {};
@@ -335,9 +379,9 @@ app.post('/getBookingListByManager',function(req,res){
       }
     })
     .then(() => {
-      var sql = 'INSERT INTO userdevicerelationship (deviceaddress, useraddress, dateofenroll, bookingtime) VALUES(?, ?, ?, ?)';
-      var params = [deviceAddress, userAddress, Date.now(), bookingTime];
-      var dataTypes = ['varchar', 'varchar', 'bigint','bigint'];
+      var sql = 'INSERT INTO userdevicerelationship (deviceaddress, useraddress, dateofenroll, bookingtime, purpose) VALUES(?, ?, ?, ?, ?)';
+      var params = [deviceAddress, userAddress, Date.now(), bookingTime, purpose];
+      var dataTypes = ['varchar', 'varchar', 'bigint','bigint','varchar'];
       console.log("sql of relationshiop ==> ", sql)
       console.log("params ==> ", params)
       paramsOfsql = params;

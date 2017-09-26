@@ -74,10 +74,11 @@
                         </p>
                       </div>
                     </div>`
-          }          
+          }
         }
       }
       xmlhttp.open("POST", "/requestAllUserList", true);  //true Asyc, false syc
+      // xmlhttp.open("GET", "/multilangTest", true);  //true Asyc, false syc
       xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
       xmlhttp.send();
     };

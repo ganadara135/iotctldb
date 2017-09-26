@@ -25,7 +25,7 @@
                 location.href="/";
                 return;
             }else if (deviceJsonWebstorageValue == null || deviceJsonWebstorageValue == ""){
-              alert("Please register your divice into IoT Control System")
+              alert("Please register your device into IoT Control System")
               return false;
             } else {
                var myJSONwithObject = JSON.parse(JSON.parse(userJsonWebstorageValue));
@@ -91,17 +91,17 @@
 
     <div class="content">
       <div class="object-icon-wrap">
-        <img src="img/icon-airconditioner2.svg" class="object-icon" />
+        <img src="img/bike_01.svg" class="object-icon" />
       </div>
       <p class="object-title">
-        Air Conditioner
+        Bike Locking Device
       </p>
       <div class="object-switch">
         <input type="checkbox" id="aircon-switch" />
         <label for="aircon-switch"><span></span></label>
       </div>
-
     </div>
+
     <script>
       document.querySelector('#icon-setting').addEventListener('click',()=>{location.href="/main"});
     </script>
