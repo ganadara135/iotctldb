@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>${title}</title>
+    <link rel="stylesheet" href="css/common_nav.css" />
+    <link rel="stylesheet" href="css/users.css" />
+    <meta name="viewport" content="width=device-width, user-scalable=no
+      initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+  </head>
+  <body>
+    <header>
+      <input type="checkbox" id="menu-bar" />
+      <label for="menu-bar"><span></span></label>
+      <nav>
+        <div class="user_info">
+          <div class="img-wrap">
+            <img src="img/profile_face2.jpg" />
+          </div>
+          <div class="profile">
+            <p class="username"><%= loginUser %></p>
+            <p class="user_detail"><%= userAddress %></p>
+            <img id="icon-setting" src="img/icon-setting.svg" class="icon-setting" />
+          </div>
+        </div>
+        <div class="menu-container">
+          <a href="./devices">Devices</a>
+          <a href="./users">Users</a>
+          <a href="./main">History</a>
+          <a href="./logout">logout</a>
+          <!-- <a href="#">Reservation</a> -->
+        </div>
+      </nav>
+      <label for="menu-bar" class="overlay"></label>
+    </header>
+
+    <div class="content">
+      <div class="user-list">
+        <div class="user-content">
+          <div class="user-img">
+            <img src="./img/profile_face2.jpg" />
+          </div>
+          <div class="user-info">
+            <p class="user-name">Alexander Great</p>
+            <p class="user-summary">
+
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+<script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?clientId=aKO1iUJk3BYU2YPZiLZb&submodules=geocoder">
+</script>
+<div id="map" style="width:100%;height:400px;"></div>
+    <script>
+      var map = new naver.maps.Map('map');
+      var myaddress = '불정로 6';// 도로명 주소나 지번 주소만 가능 (건물명 불가!!!!)
+      naver.maps.Service.geocode({address: myaddress}, function(status, response) {
+          if (status !== naver.maps.Service.Status.OK) {
+              return alert(myaddress + '의 검색 결과가 없거나 기타 네트워크 에러');
+          }
+          var result = response.result;
+          // 검색 결과 갯수: result.total
+          // 첫번째 결과 결과 주소: result.items[0].address
+          // 첫번째 검색 결과 좌표: result.items[0].point.y, result.items[0].point.x
+          var myaddr = new naver.maps.Point(result.items[0].point.x, result.items[0].point.y);
+          map.setCenter(myaddr); // 검색된 좌표로 지도 이동
+          // 마커 표시
+          var marker = new naver.maps.Marker({
+            position: myaddr,
+            map: map
+          });
+          // 마커 클릭 이벤트 처리
+          naver.maps.Event.addListener(marker, "click", function(e) {
+            if (infowindow.getMap()) {
+                infowindow.close();
+            } else {
+                infowindow.open(map, marker);
+            }
+          });
+          // 마크 클릭시 인포윈도우 오픈
+          var infowindow = new naver.maps.InfoWindow({
+              content: '<h4> [네이버 개발자센터]</h4><a href="https://developers.naver.com" target="_blank"><img src="https://developers.naver.com/inc/devcenter/images/nd_img.png"></a>'
+          });
+      });
+      </script>
+    <script>
+    function requestAllUserList(){
+      var xmlhttp = new XMLHttpRequest();
+      var userlist = document.querySelector('.user-list');
+      userlist.innerHTML = '';
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          var userOf = JSON.parse(this.responseText);
+          var imgnum = 2;
+          for(var x in userOf){
+            console.log(x);
+            console.log(userOf[x]);
+            userlist.innerHTML +=
+                    `<div class="user-content">
+                      <div class="user-img">
+                        <img src="./img/profile_face${imgnum++}.jpg" />
+                      </div>
+                      <div class="user-info">
+                        <p class="user-name">${userOf[x].userid}</p>
+                        <p class="user-summary">
+                          <img class="device-count" src="./img/icon-badge.svg" />
+                          <span class="device-count-text">1</span>
+                        </p>
+                      </div>
+                    </div>`
+          }
+        }
+      }
+      xmlhttp.open("POST", "/requestAllUserList", true);  //true Asyc, false syc
+      xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xmlhttp.send();
+    };
+  //  requestAllUserList();
+    </script>
+    <script>
+      document.querySelector('#icon-setting').addEventListener('click',()=>{location.href="/main"});
+    </script>
+  </body>
+</html>
