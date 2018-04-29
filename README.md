@@ -28,3 +28,6 @@ Don't forget "const" in For() like this "For( const x in items)".
 
   convert JSON file into RDBMS as Cubrid made by Naver.
   be cautious of dataType between DB and Nodejs.   
+
+## 6. 2018.4.29
+   router/main.js   에서  multichain 서버 주소 주의 현재 주소는 nodejs 웹서버 주소로 되어 있음.
