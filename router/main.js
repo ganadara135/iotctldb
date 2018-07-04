@@ -8,12 +8,12 @@
 // 따라서 SELECT 쿼리는 query() 함수를 사용하고, INSERT/UPDATE/DELETE 쿼리는 execute() 함수를 사용하면 된다.
 // http://d2.naver.com/helloworld/251396  참고
 var CUBRID = require('node-cubrid');
-const conCubrid = CUBRID.createCUBRIDConnection('1.255.54.209', 33000, 'dba', '', 'demodb');
+const conCubrid = CUBRID.createCUBRIDConnection('localhost', 33000, 'dba', '', 'demodb');
 
 const connection = {
 //      port: 7206,     //rpc port
       port: 7414,     //rpc port
-      host: '220.230.112.30',
+      host: 'localhost',
 //      pass: "AxNpbxmkLN4Hey4AkV4VeC964ndGQMxmfizwH9Y56znT",
 //      host: '127.0.0.1',
 //      pass: "973MVcjrxbwyKdCWN6mMeCKUXZGRXgAFB4g4xr3PkcME"
